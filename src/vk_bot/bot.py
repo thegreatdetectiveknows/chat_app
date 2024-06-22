@@ -23,68 +23,85 @@ session_api = vk_session.get_api()
 # Инициализация LongPoll
 longpoll = VkLongPoll(vk_session)
 
-response_sent = False
-
+last_message = {}
 
 async def handle_message(event):
+    
+    """
+    Обработчик сообщений VK.
+    Отправляет полученное сообщение в микросервис по маршрутизации сообщений.
+    При успешной отправке отправляет уведомление пользователю в VK.
+    При ошибке отправки сообщения в микросервис отправляет уведомление об ошибке пользователю в VK.
+    """
 
+    # Проверяем, что полученное событие является сообщением от пользователя и не является системным 
     if event.type == VkEventType.MESSAGE_NEW and event.from_user:
+        # Получаем данные о сообщении
         user_id = event.user_id
         message_text = event.text
 
-        # Проверяем, был ли уже отправлен ответ на это сообщение
-        if response_sent:
-            logging.info(
-                f"Ответ на сообщение от пользователя {user_id} уже был отправлен, пропускаем..."
-            )
+        # Получаем последнее отправленное сообщение пользователя
+        last_sent_message = last_message.get(user_id)
+
+        # Проверяем, было ли отправлено последнее сообщение и совпадает ли оно с текущим
+        if last_sent_message and last_sent_message == message_text:
+            return  # Если совпадает, игнорируем это сообщение
+        
+        # Проверяем, что сообщение не является системным
+        if event.random_id == 0:
             return
+        
+        # Получаем данные о пользователе
+        user_info = session_api.users.get(user_ids=user_id, fields="screen_name")
+        username = user_info[0].get("screen_name", None)
+        user_get = session_api.users.get(user_ids=user_id)[0]
+        name = f"{user_get['first_name']} {user_get['last_name']}"
+        message_id = event.message_id 
+        # Ваша обработка сообщения здесь
+        logging.info(f"Пользователь {user_id} отправил сообщение с message_id {message_id}: {message_text}")
 
-        try:
-            user_info = session_api.users.get(user_ids=user_id, fields="screen_name")
-            username = user_info[0].get("screen_name", None)
-        except Exception as e:
-            logging.error(
-                f"Ошибка получения информации о пользователе {user_id}: {str(e)}"
-            )
-            username = None
-        user_get = session_api.users.get(user_ids=user_id)
-        user_get = user_get[0]
-        name = user_get["first_name"] + user_get["last_name"]
-
+        # Подготовка данных для отправки
         data = {
             "userid": user_id,
-            "platform": "VK",
+            "platform": "vk",
             "name": name,
             "nickname": username,
+            "messageid": message_id,
             "message": message_text,
             "date": datetime.fromtimestamp(event.timestamp).isoformat(),
         }
 
+        # Адрес микросервиса по маршрутизации сообщений
         url = "http://localhost:8001/route_message"
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=data) as resp:
-                if resp.status == 200:
-                    logging.info(
-                        f"Сообщение успешно отправлено: {resp.status} - {await resp.text()}"
-                    )
-                    # Отправляем ответное сообщение в VK
-                    session_api.messages.send(
-                        user_id=user_id,
-                        message="Сообщение успешно отправлено",
-                        random_id=0,
-                    )
-                else:
-                    logging.error(
-                        f"Ошибка при отправке сообщения: {resp.status} - {await resp.text()}"
-                    )
-                    # Отправляем сообщение об ошибке в VK
-                    session_api.messages.send(
-                        user_id=user_id,
-                        message="Ошибка при отправке сообщения",
-                        random_id=0,
-                    )
-
+            try:
+                async with session.post(url, json=data) as resp:
+                    if resp.status == 200:
+                        logging.info(f"Сообщение успешно отправлено: {resp.status} - {await resp.text()}")
+                        # Обновляем последнее отправленное сообщение пользователя
+                        last_message[user_id] = message_text
+                        # Отправляем ответное сообщение в VK
+                        session_api.messages.send(
+                            user_id=user_id,
+                            message="Сообщение успешно отправлено",
+                            random_id=0,
+                        )
+                    else:
+                        logging.error(f"Ошибка при отправке сообщения: {resp.status} - {await resp.text()}")
+                        # Отправляем сообщение об ошибке в VK
+                        session_api.messages.send(
+                            user_id=user_id,
+                            message="Ошибка при отправке сообщения",
+                            random_id=0,
+                        )
+            except aiohttp.ClientError as e:
+                logging.error(f"Исключение при отправке сообщения: {e}")
+                session_api.messages.send(
+                    user_id=user_id,
+                    message="Ошибка соединения с сервером",
+                    random_id=event.random_id,
+                )
 
 # Основной процесс обработки событий VK
 async def main():
@@ -94,7 +111,6 @@ async def main():
             await handle_message(event)
     except (KeyboardInterrupt, SystemExit):
         logging.info("Бот остановлен!")
-
 
 # Запуск основного процесса
 if __name__ == "__main__":
