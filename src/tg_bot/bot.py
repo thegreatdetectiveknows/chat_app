@@ -4,7 +4,8 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Импортируем модуль с конфигурационными данными
-from config.config_reader import config
+from config.config_reader import config, MessageFromBot
+
 
 # Импортируем библиотеку для работы с Telegram API
 from aiogram import Bot, Dispatcher, types
@@ -35,30 +36,25 @@ async def start_command(message: types.Message):
 @dp.message()
 async def handle_message(message: types.Message):
     # Подготовка данных для отправки
-    data = {
-        "userid": message.from_user.id,
-        "platform": "Telegram",
-        "name": message.from_user.full_name,
-        "nickname": message.from_user.username,
-        "message": message.text,
-        "date": message.date.isoformat(),
-    }
+    data = MessageFromBot(
+        userid=message.from_user.id,
+        platform="telegram",
+        name=message.from_user.full_name,
+        nickname=message.from_user.username,
+        messageid=message.message_id,
+        message=message.text,
+        date=message.date.isoformat(),
+    )
 
     # Адрес микросервиса по маршрутизации сообщений
-    url = "http://localhost:8001/route_message"
+    url = config.route_message_uri
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=data) as resp:
+        async with session.post(url, json=data.model_dump()) as resp:
             if resp.status == 200:
-                logging.info(
-                    f"Сообщение успешно отправлено: {resp.status} - {await resp.text()}"
-                )
                 # Отправка уведомления пользователю
                 await message.reply("Сообщение успешно отправлено")
             else:
-                logging.error(
-                    f"Ошибка при отправке сообщения: {resp.status} - {await resp.text()}"
-                )
                 # Отправка уведомления пользователю об ошибке
                 await message.reply("Ошибка при отправке сообщения")
 

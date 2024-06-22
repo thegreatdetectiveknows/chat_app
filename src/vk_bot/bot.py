@@ -2,7 +2,7 @@ import sys, os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config.config_reader import config
+from config.config_reader import config, MessageFromBot
 
 import asyncio
 
@@ -11,8 +11,6 @@ import vk_api
 import logging
 from vk_api.longpoll import VkLongPoll, VkEventType
 from datetime import datetime
-
-# Импортируйте ваш модуль config_reader для чтения конфигурационных данных
 
 
 logging.basicConfig(level=logging.INFO)
@@ -61,22 +59,22 @@ async def handle_message(event):
         logging.info(f"Пользователь {user_id} отправил сообщение с message_id {message_id}: {message_text}")
 
         # Подготовка данных для отправки
-        data = {
-            "userid": user_id,
-            "platform": "vk",
-            "name": name,
-            "nickname": username,
-            "messageid": message_id,
-            "message": message_text,
-            "date": datetime.fromtimestamp(event.timestamp).isoformat(),
-        }
+        data = MessageFromBot(
+            userid=user_id,
+            platform="vk",
+            name=name,
+            nickname=username,
+            messageid=message_id,
+            message=message_text,
+            date=datetime.fromtimestamp(event.timestamp).isoformat(),
+        )
 
         # Адрес микросервиса по маршрутизации сообщений
-        url = "http://localhost:8001/route_message"
+        url = config.route_message_uri
 
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.post(url, json=data) as resp:
+                async with session.post(url, json=data.model_dump()) as resp:
                     if resp.status == 200:
                         logging.info(f"Сообщение успешно отправлено: {resp.status} - {await resp.text()}")
                         # Обновляем последнее отправленное сообщение пользователя

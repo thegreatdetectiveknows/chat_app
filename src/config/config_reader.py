@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import SecretStr
+from pydantic import SecretStr, BaseModel
+from typing import Optional
+from datetime import datetime
 import os
 
 class Settings(BaseSettings):
@@ -8,6 +10,8 @@ class Settings(BaseSettings):
     telegram_bot_token: SecretStr
     vk_bot_token: SecretStr
     mongodb_uri: str
+    route_message_uri: str
+    storage_message_uri: str
 
     # Начиная со второй версии pydantic, настройки класса настроек задаются
     # через model_config
@@ -20,3 +24,17 @@ class Settings(BaseSettings):
 # и провалидируется объект конфига, 
 # который можно далее импортировать из разных мест
 config = Settings()
+
+
+class MessageFromBot(BaseModel):
+    '''
+    Сообщения от бота
+    '''
+    userid: int
+    platform: str
+    name: str
+    nickname: Optional[str] # Никнейм может быть либо строкой, либо None
+    messageid: int
+    message: str
+    date: datetime
+    

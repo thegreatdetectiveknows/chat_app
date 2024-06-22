@@ -21,6 +21,8 @@ pip install -r requirements.txt
 TELEGRAM_BOT_TOKEN=YOURDATA
 MONGODB_URI=YOURDATA
 VK_BOT_TOKEN=YOURDATA
+ROUTE_MESSAGE_URI=http://localhost:8001/route_message
+STORAGE_MESSAGE_URI=http://localhost:8002/storage_message
 ```
 5. __В процессе разработки__
 
