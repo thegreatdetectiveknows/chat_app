@@ -1,10 +1,18 @@
+'''
+Телеграм-бот
+
+Принимает сообщение от пользователя Telegram и пересылает его в микросервис по маршрутизации сообщений.
+'''
+
 import sys, os
 
 # Добавляем папку с конфигурационным файлом в путь поиска модулей
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Импортируем модуль с конфигурационными данными
-from config.config_reader import config, MessageFromBot
+from config.config_reader import config
+
+from models import MessageFromBot
 
 
 # Импортируем библиотеку для работы с Telegram API
@@ -47,7 +55,7 @@ async def handle_message(message: types.Message):
     )
 
     # Адрес микросервиса по маршрутизации сообщений
-    url = config.route_message_uri
+    url = "http://localhost:8001/bot/message"
 
     async with aiohttp.ClientSession() as session:
         async with session.post(url, json=data.model_dump()) as resp:
