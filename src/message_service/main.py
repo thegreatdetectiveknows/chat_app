@@ -21,10 +21,22 @@ from pymongo import MongoClient
 import aiohttp
 import logging
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # Настройка логгера
 logging.basicConfig(level=logging.INFO)
 
+# Создание приложения FastAPI
 app = FastAPI()
+
+# Настройка middleware для CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+) 
 
 client = MongoClient(config.mongodb_uri)
 db = client["chat_db"]
@@ -124,6 +136,12 @@ async def get_user_id_from_chat_id(chat_id: str):
 
     return platform_user_id
 
+@app.get("/messages")
+async def get_messages():
+    messages = list(messages_collection.find())
+    for message in messages:
+        message["_id"] = str(message["_id"])
+    return messages
 
 @app.post("/messages/from_user")
 async def receive_message(message: MessageFromBot):
@@ -161,7 +179,7 @@ async def receive_message_from_admin(message: AdminMessage):
         message_text = message.message_text,
         date = message.date,
     )
-    result = messages_collection.insert_one(message_data)
+    result = messages_collection.insert_one(message_data.model_dump())
 
     # Обновление даты последнего сообщения в чате
     await update_chat(ID_Date(id=message.chat_id, date=message.date))
@@ -175,7 +193,7 @@ async def receive_message_from_admin(message: AdminMessage):
             text = message.message_text
         )
         
-        await session.post("http://localhost:8001/bot/send", json=user_message_data)
+        await session.post("http://localhost:8001/bot/send", json=user_message_data.model_dump())
 
     return {"_id": str(result.inserted_id)}
 
