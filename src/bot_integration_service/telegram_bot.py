@@ -1,8 +1,8 @@
-'''
+"""
 Телеграм-бот
 
 Принимает сообщение от пользователя Telegram и пересылает его в микросервис по маршрутизации сообщений.
-'''
+"""
 
 import sys, os
 
@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Импортируем модуль с конфигурационными данными
 from config.config_reader import config
 
-from models import MessageFromBot
+from config.models import MessageFromBot
 
 
 # Импортируем библиотеку для работы с Telegram API
