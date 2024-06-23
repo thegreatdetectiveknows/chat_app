@@ -4,37 +4,25 @@ from typing import Optional
 from datetime import datetime
 import os
 
+
 class Settings(BaseSettings):
-    # Желательно вместо str использовать SecretStr 
+    # Желательно вместо str использовать SecretStr
     # для конфиденциальных данных, например, токена бота
     telegram_bot_token: SecretStr
     vk_bot_token: SecretStr
     mongodb_uri: str
-    route_message_uri: str
-    storage_message_uri: str
+    
 
     # Начиная со второй версии pydantic, настройки класса настроек задаются
     # через model_config
     # В данном случае будет использоваться файла .env, который будет прочитан
     # с кодировкой UTF-8
-    model_config=SettingsConfigDict(env_file=os.path.join(os.path.dirname(__file__), ".env"))
+    model_config = SettingsConfigDict(
+        env_file=os.path.join(os.path.dirname(__file__), ".env")
+    )
 
 
-# При импорте файла сразу создастся 
-# и провалидируется объект конфига, 
+# При импорте файла сразу создастся
+# и провалидируется объект конфига,
 # который можно далее импортировать из разных мест
 config = Settings()
-
-
-class MessageFromBot(BaseModel):
-    '''
-    Сообщения от бота
-    '''
-    userid: int
-    platform: str
-    name: str
-    nickname: Optional[str] # Никнейм может быть либо строкой, либо None
-    messageid: int
-    message: str
-    date: datetime
-    
