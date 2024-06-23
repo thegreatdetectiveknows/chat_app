@@ -29,8 +29,8 @@ class MessageToBot(BaseModel):
 
 
 class AdminMessage(BaseModel):
-    chat_id: str = Field(..., description="ID чата")
-    admin_id: str = Field(..., description="ID администратора")
+    chat_id: str = Field(..., description="_ID чата")
+    admin_id: str = Field(..., description="_ID администратора")
     message_text: str = Field(..., description="Текст сообщения")
     date: str = Field(..., description="Дата отправки сообщения")
 

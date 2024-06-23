@@ -6,6 +6,8 @@ User Service
 
 import sys, os
 
+from bson import ObjectId
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.config_reader import config
@@ -52,6 +54,19 @@ async def get_user(user_id: int, platform: str):
     user["_id"] = str(user["_id"])
     return user
 
+# Эндпоинт для получения пользователя по _id
+@app.get("/users/{user_id}")
+async def get_user_by_id(user_id: str):
+    try:
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+    
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user["_id"] = str(user["_id"])
+    return user
 
 # Запуск приложения
 if __name__ == "__main__":

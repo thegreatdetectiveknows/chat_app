@@ -40,7 +40,7 @@ async def create_chat(chat: Chat):
 
 # Эндпоинт для получения пользователя по _id из коллекции user
 @app.get("/chats")
-async def get_chat(user_id: str):
+async def get_chat_by_user(user_id: str):
     chat = chats_collection.find_one({"user_id": user_id})
 
     if chat is None:
@@ -49,6 +49,19 @@ async def get_chat(user_id: str):
     chat["_id"] = str(chat["_id"])
     return chat
 
+# Эндпоинт для получения чата по _id
+@app.get("/chats/{chat_id}")
+async def get_chat_by_id(chat_id: str):
+    try:
+        chat = chats_collection.find_one({"_id": ObjectId(chat_id)})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+    
+    if chat is None:
+        raise HTTPException(status_code=404, detail="Чат не найден")
+    
+    chat["_id"] = str(chat["_id"])
+    return chat
 
 # Эндпоинт для обновления чата по id в теле запроса
 @app.put("/chats")

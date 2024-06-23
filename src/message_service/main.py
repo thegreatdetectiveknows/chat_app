@@ -13,7 +13,7 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.config_reader import config
-from config.models import MessageFromBot, User, Chat, Message, ID_Date
+from config.models import MessageFromBot, User, Chat, Message, ID_Date, AdminMessage, MessageToBot
 
 from fastapi import FastAPI, HTTPException
 from datetime import datetime
@@ -104,6 +104,27 @@ async def update_chat(data: ID_Date):
                 )
 
 
+async def get_user_id_from_chat_id(chat_id: str):
+    async with aiohttp.ClientSession() as session:
+        # Получение _id пользователя по _id чата из Chat Service
+        chat_url = f"http://localhost:8004/chats/{chat_id}"
+        async with session.get(chat_url) as chat_resp:
+            if chat_resp.status == 404:
+                raise HTTPException(status_code=404, detail="Chat not found")
+            chat = await chat_resp.json()
+            user_id = chat["user_id"]
+            
+            # Получение user_id пользователя на платформе из User Service
+            user_url = f"http://localhost:8003/users/{user_id}"
+            async with session.get(user_url) as user_resp:
+                if user_resp.status == 404:
+                    raise HTTPException(status_code=404, detail="User not found")
+                user = await user_resp.json()
+                platform_user_id = user["user_id"]
+
+    return platform_user_id
+
+
 @app.post("/messages/from_user")
 async def receive_message(message: MessageFromBot):
 
@@ -131,33 +152,34 @@ async def receive_message(message: MessageFromBot):
     return {"_id": str(result.inserted_id)}
 
 
-"""
+### РЕАЛИЗУЙ ЭТО!
 @app.post("/messages/from_admin")
 async def receive_message_from_admin(message: AdminMessage):
-    message_data = {
-        "chat_id": message.chat_id,
-        "sender_id": message.admin_id,
-        "message_text": message.message_text,
-        "date": message.date.isoformat()
-    }
+    message_data = Message(
+        chat_id = message.chat_id,
+        sender_id = "default_admin123",
+        message_text = message.message_text,
+        date = message.date,
+    )
     result = messages_collection.insert_one(message_data)
 
     # Обновление даты последнего сообщения в чате
-    chats_collection.update_one(
-        {"_id": message.chat_id},
-        {"$set": {"updatedAt": message.date.isoformat()}}
-    )
+    await update_chat(ID_Date(id=message.chat_id, date=message.date))
 
     # Уведомление пользователя через Bot Gateway Service
     async with aiohttp.ClientSession() as session:
-        user_message_data = {
-            "userid": message.chat_id,  # Здесь должно быть user_id, это placeholder
-            "text": message.message_text
-        }
+        
+        
+        user_message_data = MessageToBot(
+            userid = await get_user_id_from_chat_id(message.chat_id),  # Здесь должно быть user id платформы
+            text = message.message_text
+        )
+        
         await session.post("http://localhost:8001/bot/send", json=user_message_data)
 
     return {"_id": str(result.inserted_id)}
-"""
+
+
 # Запуск приложения
 if __name__ == "__main__":
     import uvicorn
