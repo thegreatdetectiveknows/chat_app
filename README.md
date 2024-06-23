@@ -1,8 +1,13 @@
+# Чат-приложение с использованием FastAPI и Vue.js
+
+Этот проект представляет собой простое чат-приложение, построенное с использованием FastAPI для бэкенда и Vue.js для фронтенда. Приложение позволяет пользователям отправлять сообщения через веб-интерфейс и отображать их в окне чата.
+
+
 ### Установка проекта
 
 1. Клонируйте репозиторий и перейдите в папку.
 ```
-git clone https://github.com/thegreatdetectiveknows/adam-app.git
+git clone https://github.com/thegreatdetectiveknows/fastapi-vuejs-app.git
 cd adam-app
 ```
 2. Создайте виртуальное окружение python и активируйте его (либо VSCode сам предложит включить виртуальное окружение):
@@ -19,8 +24,6 @@ pip install -r requirements.txt
 TELEGRAM_BOT_TOKEN=YOURDATA
 MONGODB_URI=YOURDATA
 VK_BOT_TOKEN=YOURDATA
-ROUTE_MESSAGE_URI=http://localhost:8001/route_message
-STORAGE_MESSAGE_URI=http://localhost:8002/storage_message
 ```
 5. __В процессе разработки__
 
@@ -29,3 +32,6 @@ STORAGE_MESSAGE_URI=http://localhost:8002/storage_message
 ```
 pip freeze > requirements.txt
 ```
+# текущая реализация
+Осталось реализовать фронтенд.
+![текущая реализация](image.png)
